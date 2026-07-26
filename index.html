@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f172a" />
-  <title>Mobile Spectrum Lab v1.0.6</title>
+  <title>Mobile Spectrum Lab v1.0.7</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -13,7 +13,7 @@
       <h1>Mobile Spectrum Lab</h1>
       <p>스마트폰 기반 가시광 분광 측정 플랫폼</p>
     </div>
-    <span class="version">v1.0.6</span>
+    <span class="version">v1.0.7</span>
   </header>
 
   <main class="app-shell">
@@ -77,7 +77,7 @@
             <option value="red">Red</option>
             <option value="green">Green</option>
             <option value="blue">Blue</option>
-            <option value="meanRgb">Mean RGB</option>
+            <option value="rgbOverlay">RGB Overlay (동시 보기)</option>
           </select>
         </label>
         <label>세로 집계
@@ -88,6 +88,11 @@
             <option value="sum">Sum</option>
           </select>
         </label>
+      </div>
+      <div id="overlayControls" class="overlay-controls hidden" aria-label="RGB 표시 채널">
+        <label><input id="showRed" type="checkbox" checked /> <span class="dot red"></span>Red</label>
+        <label><input id="showGreen" type="checkbox" checked /> <span class="dot green"></span>Green</label>
+        <label><input id="showBlue" type="checkbox" checked /> <span class="dot blue"></span>Blue</label>
       </div>
       <canvas id="spectrumCanvas" width="900" height="360"></canvas>
       <div class="spectrum-stats">
@@ -120,6 +125,7 @@
 
       <button id="saveMeasurementBtn" class="primary-btn full" disabled>측정값 저장</button>
       <button id="exportSpectrumCsvBtn" class="secondary-btn full" disabled>현재 스펙트럼 CSV 내보내기</button>
+      <button id="exportSpectrumPngBtn" class="secondary-btn full" disabled>현재 그래프 PNG 저장</button>
     </section>
 
 
@@ -185,11 +191,12 @@
       <div id="detailMeta" class="detail-meta"></div>
       <div class="detail-actions">
         <button id="downloadSavedCsvBtn" class="secondary-btn" type="button">CSV 내보내기</button>
+        <button id="downloadSavedPngBtn" class="secondary-btn" type="button">PNG 저장</button>
         <button id="deleteMeasurementBtn" class="danger-btn" type="button">이 측정값 삭제</button>
       </div>
     </div>
   </dialog>
 
-  <script type="module" src="js/app.js?v=1.0.6"></script>
+  <script type="module" src="js/app.js?v=1.0.7"></script>
 </body>
 </html>

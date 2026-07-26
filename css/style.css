@@ -122,3 +122,11 @@ dialog form { padding:20px; }
   .detail-meta { grid-template-columns:1fr; }
   .detail-actions { grid-template-columns:1fr; }
 }
+
+.overlay-controls { display:flex; flex-wrap:wrap; gap:10px; margin:0 0 12px; padding:10px 12px; border:1px solid #dbe3ec; border-radius:12px; background:#f8fafc; }
+.overlay-controls label { display:flex; align-items:center; gap:6px; font-weight:700; cursor:pointer; }
+.overlay-controls input { width:auto; }
+.overlay-controls .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+.overlay-controls .dot.red { background:#dc2626; }
+.overlay-controls .dot.green { background:#16a34a; }
+.overlay-controls .dot.blue { background:#2563eb; }

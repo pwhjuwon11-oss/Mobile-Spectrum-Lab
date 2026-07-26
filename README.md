@@ -1,40 +1,24 @@
-# Mobile Spectrum Lab v1.0.6
+# Mobile Spectrum Lab v1.0.7
 
-스마트폰 스펙트럼 사진에서 ROI를 지정하고, FIJI Plot Profile과 비교 가능한 1차원 밝기 프로파일을 추출하는 검증 버전입니다.
+스마트폰으로 촬영한 분광 이미지를 ROI 기반으로 분석하는 연구용 웹앱입니다.
 
-## 이번 버전의 핵심 수정
+## 주요 기능
 
-v1.0.0-alpha에서는 화면에 그린 주황색 ROI 오버레이가 같은 canvas의 픽셀값에 포함되어 그래프 양 끝이 비정상적으로 상승할 수 있었습니다. v1.0.6는 원본 이미지 전용 offscreen canvas를 사용하므로 ROI 표시가 측정값에 들어가지 않습니다.
+- 이미지 업로드 및 고정 크기 ROI 이동
+- Gray(FIJI), Red, Green, Blue 채널 분석
+- RGB Overlay에서 R/G/B 스펙트럼 동시 표시
+- Overlay 채널별 표시/숨김
+- Mean, Median, Maximum, Sum 세로 집계
+- Blank, Standard, Unknown 측정값 저장
+- 저장 기록 클릭 후 그래프와 측정 조건 다시 보기
+- 단일 채널 또는 RGB Overlay CSV 내보내기
+- 축, 눈금, 범례가 포함된 그래프 PNG 저장
+- 프로젝트 JSON 내보내기
 
-## 권장 검증 설정
+## RGB Overlay 데이터
 
-- 채널: `Gray (FIJI 방식)`
-- 세로 집계: `Mean (기본)`
-- FIJI와 동일한 X, Y, 폭, 높이의 ROI 사용
-- `현재 스펙트럼 CSV 내보내기`로 결과 저장
+RGB Overlay로 저장하면 Red, Green, Blue 값이 각각 별도의 배열로 보존됩니다. CSV에는 `pixel,red,green,blue` 형식으로 출력됩니다. 화면의 체크박스는 그래프 표시만 바꾸며 원본 R/G/B 측정값은 모두 유지합니다.
 
-## GitHub 업데이트
+## GitHub Pages 업데이트
 
-기존 저장소의 `index.html`, `css`, `js`, `README.md`, `CHANGELOG.md`를 이 버전 파일로 교체한 뒤 커밋하세요.
-
-브라우저가 이전 JavaScript를 캐시하는 경우 강력 새로고침을 하거나 사이트 데이터/캐시를 삭제한 뒤 다시 여세요.
-
-## 검증 전 주의
-
-FIJI 기준 CSV가 아직 제공되지 않았으므로 이번 버전은 FIJI와의 수치 일치를 확정한 버전이 아닙니다. 기준 데이터가 준비되면 동일 ROI의 CSV를 비교하여 오차를 계산하고 필요한 보정을 진행합니다.
-
-
-## v1.0.4 추가 기능
-- 저장한 측정값이 화면 아래 목록으로 표시됩니다.
-- 목록을 누르면 저장 당시의 스펙트럼과 조건을 다시 볼 수 있습니다.
-- 저장 데이터별 CSV 내보내기와 개별 삭제가 가능합니다.
-
-
-## v1.0.6 추가 기능
-
-- Red 채널 그래프를 빨간색으로 표시
-- Green 채널 그래프를 초록색으로 표시
-- Blue 채널 그래프를 파란색으로 표시
-- Gray 채널은 회색, Mean RGB는 보라색으로 표시
-- 그래프 아래에 채널 색상과 같은 옅은 영역 채우기 추가
-- 저장된 측정 기록을 다시 열 때도 저장 당시 채널 색상으로 표시
+기존 저장소의 `index.html`, `css`, `js`, `README.md`, `CHANGELOG.md`를 교체하세요. 커밋 후 웹앱 오른쪽 위 버전이 `v1.0.7`인지 확인합니다.

@@ -1,5 +1,5 @@
-import { loadState, saveState, downloadJSON } from './storage.js?v=1.0.6';
-import { extractSpectrum, drawSpectrum, spectrumToCsv } from './spectrum.js?v=1.0.6';
+import { loadState, saveState, downloadJSON } from './storage.js?v=1.0.7';
+import { extractSpectrum, extractRgbSpectra, drawSpectrum, spectrumToCsv } from './spectrum.js?v=1.0.7';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('imageCanvas');
@@ -44,6 +44,39 @@ function downloadText(text, filename, type = 'text/plain;charset=utf-8') {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+function visibleRgbChannels() {
+  return [
+    $('showRed')?.checked ? 'red' : null,
+    $('showGreen')?.checked ? 'green' : null,
+    $('showBlue')?.checked ? 'blue' : null
+  ].filter(Boolean);
+}
+
+function measurementData(m) {
+  if (m.channelMode === 'rgbOverlay') return m.rawSpectra || {};
+  return m.rawSpectrum || [];
+}
+
+function dataValues(data) {
+  return Array.isArray(data) ? data : Object.values(data || {}).flat();
+}
+
+function dataPointCount(data) {
+  return Array.isArray(data) ? data.length : Math.max(0, ...Object.values(data || {}).map(v => v?.length || 0));
+}
+
+function saveCanvasPng(targetCanvas, filename) {
+  targetCanvas.toBlob(blob => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, 'image/png');
 }
 
 function renderProjectSelect() {
@@ -105,7 +138,7 @@ function renderMeasurementList() {
   list.className = 'measurement-list';
   list.innerHTML = ms.map(m => {
     const material = m.material ? ` · ${m.material}` : '';
-    const mode = `${m.channelMode || 'gray'} / ${m.profileMode || 'mean'}`;
+    const mode = `${m.channelMode === 'rgbOverlay' ? 'RGB Overlay' : (m.channelMode || 'gray')} / ${m.profileMode || 'mean'}`;
     return `<button class="measurement-item" type="button" data-measurement-id="${m.id}">
       <span class="measurement-main">
         <span class="measurement-title-row">
@@ -114,7 +147,7 @@ function renderMeasurementList() {
         </span>
         <span class="measurement-sub">${formatDateTime(m.createdAt)} · ${mode}</span>
       </span>
-      <span class="measurement-points">${m.rawSpectrum?.length || 0} points ›</span>
+      <span class="measurement-points">${dataPointCount(measurementData(m))} points ›</span>
     </button>`;
   }).join('');
   list.querySelectorAll('[data-measurement-id]').forEach(btn => {
@@ -132,16 +165,19 @@ function openMeasurementDetail(id) {
   selectedMeasurementId = id;
   $('detailName').textContent = m.name || '측정값';
   $('detailSubtitle').textContent = `${typeLabel(m.type)}${m.material ? ` · ${m.material}` : ''} · ${formatDateTime(m.createdAt)}`;
-  drawSpectrum(historySpectrumCanvas, m.rawSpectrum || [], { fixed255: m.profileMode !== 'sum', channel: m.channelMode || 'gray' });
-  const vals = m.rawSpectrum || [];
+  const detailData = measurementData(m);
+  const detailVisible = m.visibleChannels?.length ? m.visibleChannels : ['red','green','blue'];
+  drawSpectrum(historySpectrumCanvas, detailData, { fixed255: m.profileMode !== 'sum', channel: m.channelMode || 'gray', visibleChannels: detailVisible });
+  const vals = dataValues(detailData);
+  const pointCount = dataPointCount(detailData);
   const min = vals.length ? Math.min(...vals) : NaN;
   const max = vals.length ? Math.max(...vals) : NaN;
   const rows = [
     ['프로젝트', currentProject().name],
     ['시료 유형', `${typeLabel(m.type)}${m.material ? ` / ${m.material}` : ''}`],
     ['ROI', `${Math.round(m.roi?.x || 0)}, ${Math.round(m.roi?.y || 0)} / ${Math.round(m.roi?.w || 0)} × ${Math.round(m.roi?.h || 0)}`],
-    ['채널 / 집계', `${m.channelMode || '-'} / ${m.profileMode || '-'}`],
-    ['데이터 포인트', `${vals.length}`],
+    ['채널 / 집계', `${m.channelMode === 'rgbOverlay' ? 'RGB Overlay' : (m.channelMode || '-')} / ${m.profileMode || '-'}`],
+    ['데이터 포인트', `${pointCount}`],
     ['최소 / 최대', vals.length ? `${min.toFixed(2)} / ${max.toFixed(2)}` : '-'],
     ['메모', m.memo || '-'],
     ['화면 / 기기', `${m.viewport || '-'} / ${m.device || '-'}`]
@@ -206,6 +242,7 @@ function enableMeasurementControls(enabled) {
   $('channelMode').disabled = !enabled;
   $('saveMeasurementBtn').disabled = !enabled;
   $('exportSpectrumCsvBtn').disabled = !enabled;
+  $('exportSpectrumPngBtn').disabled = !enabled;
   syncRoiInputs();
 }
 
@@ -214,8 +251,12 @@ function redraw() {
   const roi = currentProject().roi;
 
   // 핵심 수정: 주황색 ROI 표시를 그리기 전에 원본 전용 canvas에서 값을 추출
+  const channelMode = $('channelMode').value;
+  $('overlayControls').classList.toggle('hidden', channelMode !== 'rgbOverlay');
   try {
-    spectrum = extractSpectrum(sourceCtx, roi, $('channelMode').value, $('profileMode').value);
+    spectrum = channelMode === 'rgbOverlay'
+      ? extractRgbSpectra(sourceCtx, roi, $('profileMode').value)
+      : extractSpectrum(sourceCtx, roi, channelMode, $('profileMode').value);
   } catch (error) {
     console.error('Spectrum extraction failed:', error);
     spectrum = [];
@@ -241,10 +282,14 @@ function redraw() {
   }
   displayCtx.restore();
 
-  drawSpectrum(spectrumCanvas, spectrum, { fixed255: $('profileMode').value !== 'sum', channel: $('channelMode').value });
-  const min = Math.min(...spectrum);
-  const max = Math.max(...spectrum);
-  $('spectrumLength').textContent = `포인트: ${spectrum.length}`;
+  const visibleChannels = visibleRgbChannels();
+  drawSpectrum(spectrumCanvas, spectrum, { fixed255: $('profileMode').value !== 'sum', channel: channelMode, visibleChannels });
+  const vals = channelMode === 'rgbOverlay'
+    ? visibleChannels.flatMap(k => spectrum[k] || [])
+    : dataValues(spectrum);
+  const min = vals.length ? Math.min(...vals) : 0;
+  const max = vals.length ? Math.max(...vals) : 0;
+  $('spectrumLength').textContent = `포인트: ${dataPointCount(spectrum)}`;
   $('spectrumPeak').textContent = `최대값: ${max.toFixed(2)}`;
   $('spectrumRange').textContent = `범위: ${(max-min).toFixed(2)}`;
   syncRoiInputs();
@@ -299,6 +344,7 @@ canvas.addEventListener('pointermove', (e) => {
 ['cameraInput','galleryInput'].forEach(id => $(id).addEventListener('change', e => setImage(e.target.files[0])));
 $('profileMode').addEventListener('change', redraw);
 $('channelMode').addEventListener('change', redraw);
+['showRed','showGreen','showBlue'].forEach(id => $(id).addEventListener('change', redraw));
 $('projectSelect').addEventListener('change', e => {
   state.currentProjectId = e.target.value;
   saveState(state);
@@ -358,7 +404,7 @@ document.querySelectorAll('.type-btn').forEach(btn => btn.addEventListener('clic
 $('materialSelect').addEventListener('change', updateAutoName);
 
 $('saveMeasurementBtn').addEventListener('click', () => {
-  if (!image || !spectrum.length) return;
+  if (!image || !dataPointCount(spectrum)) return;
   const p = currentProject();
   const m = {
     id: crypto.randomUUID(),
@@ -370,7 +416,9 @@ $('saveMeasurementBtn').addEventListener('click', () => {
     roi: { ...p.roi },
     channelMode: $('channelMode').value,
     profileMode: $('profileMode').value,
-    rawSpectrum: spectrum.map(v => Number(v.toFixed(4))),
+    rawSpectrum: Array.isArray(spectrum) ? spectrum.map(v => Number(v.toFixed(4))) : null,
+    rawSpectra: Array.isArray(spectrum) ? null : Object.fromEntries(Object.entries(spectrum).map(([k, vals]) => [k, vals.map(v => Number(v.toFixed(4)))])),
+    visibleChannels: $('channelMode').value === 'rgbOverlay' ? visibleRgbChannels() : null,
     device: navigator.userAgent,
     viewport: `${window.innerWidth}x${window.innerHeight}`
   };
@@ -384,7 +432,7 @@ $('saveMeasurementBtn').addEventListener('click', () => {
 });
 
 $('exportSpectrumCsvBtn').addEventListener('click', () => {
-  if (!spectrum.length) return;
+  if (!dataPointCount(spectrum)) return;
   const p = currentProject();
   const name = $('sampleName').value.trim() || 'spectrum';
   const csv = spectrumToCsv(spectrum, {
@@ -399,6 +447,12 @@ $('exportSpectrumCsvBtn').addEventListener('click', () => {
     exported_at: new Date().toISOString()
   });
   downloadText(csv, `${name}_spectrum.csv`, 'text/csv;charset=utf-8');
+});
+
+$('exportSpectrumPngBtn').addEventListener('click', () => {
+  if (!dataPointCount(spectrum)) return;
+  const name = $('sampleName').value.trim() || 'spectrum';
+  saveCanvasPng(spectrumCanvas, `${name}_spectrum.png`);
 });
 
 $('exportBtn').addEventListener('click', () => {
@@ -418,14 +472,20 @@ $('resetProjectBtn').addEventListener('click', () => {
 $('closeMeasurementDialog').addEventListener('click', () => $('measurementDialog').close());
 $('downloadSavedCsvBtn').addEventListener('click', () => {
   const m = currentProject().measurements.find(item => item.id === selectedMeasurementId);
-  if (!m || !m.rawSpectrum?.length) return;
-  const csv = spectrumToCsv(m.rawSpectrum, {
+  const savedData = m ? measurementData(m) : null;
+  if (!m || !dataPointCount(savedData)) return;
+  const csv = spectrumToCsv(savedData, {
     project: currentProject().name, sample: m.name, channel: m.channelMode,
     vertical_reducer: m.profileMode, roi_x: Math.round(m.roi?.x || 0),
     roi_y: Math.round(m.roi?.y || 0), roi_width: Math.round(m.roi?.w || 0),
     roi_height: Math.round(m.roi?.h || 0), exported_at: new Date().toISOString()
   });
   downloadText(csv, `${m.name || 'saved'}_spectrum.csv`, 'text/csv;charset=utf-8');
+});
+$('downloadSavedPngBtn').addEventListener('click', () => {
+  const m = currentProject().measurements.find(item => item.id === selectedMeasurementId);
+  if (!m) return;
+  saveCanvasPng(historySpectrumCanvas, `${m.name || 'saved'}_spectrum.png`);
 });
 $('deleteMeasurementBtn').addEventListener('click', () => {
   const p = currentProject();
