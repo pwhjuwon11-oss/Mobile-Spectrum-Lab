@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Mobile Spectrum Lab v1.0.1</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <h1>Mobile Spectrum Lab</h1>
+      <p>스마트폰 기반 가시광 분광 측정 플랫폼</p>
+    </div>
+    <span class="version">v1.0.1</span>
+  </header>
+
+  <main class="app-shell">
+    <section class="card project-card">
+      <div class="section-title-row">
+        <h2>프로젝트</h2>
+        <button id="newProjectBtn" class="ghost-btn">새 프로젝트</button>
+      </div>
+      <label class="field-label" for="projectSelect">현재 프로젝트</label>
+      <select id="projectSelect"></select>
+      <div class="project-meta">
+        <span id="projectLightSource">광원: 미설정</span>
+        <span id="projectCreatedAt">생성일: -</span>
+      </div>
+    </section>
+
+    <section class="card measurement-card">
+      <h2>측정</h2>
+      <div class="action-grid">
+        <label class="primary-btn file-btn">
+          📷 카메라 촬영
+          <input id="cameraInput" type="file" accept="image/*" capture="environment" />
+        </label>
+        <label class="secondary-btn file-btn">
+          📁 사진 불러오기
+          <input id="galleryInput" type="file" accept="image/*" />
+        </label>
+      </div>
+
+      <div id="canvasWrap" class="canvas-wrap empty">
+        <canvas id="imageCanvas"></canvas>
+        <div id="emptyGuide" class="empty-guide">
+          <strong>스펙트럼 사진을 선택하세요.</strong>
+          <span>이미지를 넣으면 ROI와 그래프가 바로 나타납니다.</span>
+        </div>
+      </div>
+
+      <div class="roi-controls">
+        <div class="section-title-row compact">
+          <h3>ROI</h3>
+          <button id="lockRoiBtn" class="ghost-btn" disabled>크기 잠금</button>
+        </div>
+        <div class="control-grid">
+          <label>X <input id="roiX" type="number" min="0" value="0" disabled /></label>
+          <label>Y <input id="roiY" type="number" min="0" value="0" disabled /></label>
+          <label>폭 <input id="roiW" type="number" min="8" value="260" disabled /></label>
+          <label>높이 <input id="roiH" type="number" min="8" value="60" disabled /></label>
+        </div>
+        <p class="hint">ROI 내부에서 드래그하면 이동하고, 오른쪽 아래 손잡이로 크기를 조절합니다.</p>
+      </div>
+    </section>
+
+    <section class="card spectrum-card">
+      <div class="section-title-row">
+        <h2>스펙트럼</h2>
+      </div>
+      <div class="control-grid spectrum-options">
+        <label>채널
+          <select id="channelMode" disabled>
+            <option value="gray">Gray (FIJI 방식)</option>
+            <option value="red">Red</option>
+            <option value="green">Green</option>
+            <option value="blue">Blue</option>
+            <option value="meanRgb">Mean RGB</option>
+          </select>
+        </label>
+        <label>세로 집계
+          <select id="profileMode" disabled>
+            <option value="mean">Mean (기본)</option>
+            <option value="median">Median</option>
+            <option value="max">Maximum</option>
+            <option value="sum">Sum</option>
+          </select>
+        </label>
+      </div>
+      <canvas id="spectrumCanvas" width="900" height="360"></canvas>
+      <div class="spectrum-stats">
+        <span id="spectrumLength">포인트: 0</span>
+        <span id="spectrumPeak">최대값: -</span>
+        <span id="spectrumRange">범위: -</span>
+      </div>
+    </section>
+
+    <section class="card save-card">
+      <h2>저장</h2>
+      <div class="segmented" role="group" aria-label="measurement type">
+        <button class="type-btn active" data-type="blank">Blank</button>
+        <button class="type-btn" data-type="standard">Standard</button>
+        <button class="type-btn" data-type="unknown">Unknown</button>
+      </div>
+
+      <div id="materialWrap" class="hidden">
+        <label class="field-label" for="materialSelect">재질</label>
+        <select id="materialSelect">
+          <option>PP</option><option>PS</option><option>PET</option><option>PE</option><option>PC</option>
+        </select>
+      </div>
+
+      <label class="field-label" for="sampleName">시료명</label>
+      <input id="sampleName" type="text" value="BLANK-001" />
+
+      <label class="field-label" for="memo">메모</label>
+      <textarea id="memo" rows="2" placeholder="선택 사항"></textarea>
+
+      <button id="saveMeasurementBtn" class="primary-btn full" disabled>측정값 저장</button>
+      <button id="exportSpectrumCsvBtn" class="secondary-btn full" disabled>현재 스펙트럼 CSV 내보내기</button>
+    </section>
+
+    <aside class="card session-card">
+      <h2>Current Session</h2>
+      <div class="session-grid">
+        <div><span>Blank</span><strong id="blankCount">0</strong></div>
+        <div><span>Standard</span><strong id="standardCount">0</strong></div>
+        <div><span>Unknown</span><strong id="unknownCount">0</strong></div>
+        <div><span>ROI</span><strong id="roiSummary">미설정</strong></div>
+      </div>
+      <div id="materialCounts" class="material-counts"></div>
+      <div class="session-actions">
+        <button id="exportBtn" class="secondary-btn">JSON 내보내기</button>
+        <button id="resetProjectBtn" class="danger-btn">프로젝트 데이터 초기화</button>
+      </div>
+    </aside>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="active">측정</button>
+    <button disabled>분석</button>
+    <button disabled>라이브러리</button>
+    <button disabled>연구 데이터</button>
+  </nav>
+
+  <dialog id="projectDialog">
+    <form method="dialog" id="projectForm">
+      <h2>새 프로젝트</h2>
+      <label class="field-label">프로젝트 이름</label>
+      <input id="newProjectName" required placeholder="예: 전국과학전람회" />
+      <label class="field-label">광원</label>
+      <input id="newLightSource" placeholder="예: White LED 6500K" />
+      <div class="dialog-actions">
+        <button value="cancel" class="ghost-btn">취소</button>
+        <button id="createProjectConfirm" value="default" class="primary-btn">생성</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
