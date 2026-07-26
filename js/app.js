@@ -7,6 +7,8 @@ const displayCtx = canvas.getContext('2d');
 const sourceCanvas = document.createElement('canvas');
 const sourceCtx = sourceCanvas.getContext('2d', { willReadFrequently: true });
 const spectrumCanvas = $('spectrumCanvas');
+const historySpectrumCanvas = $('historySpectrumCanvas');
+let selectedMeasurementId = null;
 
 let image = null;
 let spectrum = [];
@@ -52,6 +54,7 @@ function renderProjectSelect() {
   $('projectCreatedAt').textContent = `생성일: ${new Date(p.createdAt).toLocaleDateString('ko-KR')}`;
   syncRoiInputs();
   renderSession();
+  renderMeasurementList();
   updateAutoName();
 }
 
@@ -75,6 +78,76 @@ function renderSession() {
   const counts = {};
   ms.filter(m => m.type === 'standard').forEach(m => counts[m.material] = (counts[m.material] || 0) + 1);
   $('materialCounts').innerHTML = Object.entries(counts).map(([k,v]) => `<span>${k} ${v}</span>`).join('');
+}
+
+function formatDateTime(iso) {
+  try {
+    return new Intl.DateTimeFormat('ko-KR', {
+      year:'numeric', month:'2-digit', day:'2-digit',
+      hour:'2-digit', minute:'2-digit'
+    }).format(new Date(iso));
+  } catch { return iso || '-'; }
+}
+
+function typeLabel(type) {
+  return type === 'blank' ? 'Blank' : type === 'standard' ? 'Standard' : 'Unknown';
+}
+
+function renderMeasurementList() {
+  const ms = [...currentProject().measurements].reverse();
+  $('historyCount').textContent = `${ms.length}개`;
+  const list = $('measurementList');
+  if (!ms.length) {
+    list.className = 'measurement-list empty-list';
+    list.innerHTML = '<div class="empty-history">저장된 측정값이 없습니다.</div>';
+    return;
+  }
+  list.className = 'measurement-list';
+  list.innerHTML = ms.map(m => {
+    const material = m.material ? ` · ${m.material}` : '';
+    const mode = `${m.channelMode || 'gray'} / ${m.profileMode || 'mean'}`;
+    return `<button class="measurement-item" type="button" data-measurement-id="${m.id}">
+      <span class="measurement-main">
+        <span class="measurement-title-row">
+          <span class="measurement-name">${escapeHtml(m.name || 'UNNAMED')}</span>
+          <span class="measurement-badge ${m.type}">${typeLabel(m.type)}${material}</span>
+        </span>
+        <span class="measurement-sub">${formatDateTime(m.createdAt)} · ${mode}</span>
+      </span>
+      <span class="measurement-points">${m.rawSpectrum?.length || 0} points ›</span>
+    </button>`;
+  }).join('');
+  list.querySelectorAll('[data-measurement-id]').forEach(btn => {
+    btn.addEventListener('click', () => openMeasurementDetail(btn.dataset.measurementId));
+  });
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]));
+}
+
+function openMeasurementDetail(id) {
+  const m = currentProject().measurements.find(item => item.id === id);
+  if (!m) return;
+  selectedMeasurementId = id;
+  $('detailName').textContent = m.name || '측정값';
+  $('detailSubtitle').textContent = `${typeLabel(m.type)}${m.material ? ` · ${m.material}` : ''} · ${formatDateTime(m.createdAt)}`;
+  drawSpectrum(historySpectrumCanvas, m.rawSpectrum || [], { fixed255: m.profileMode !== 'sum' });
+  const vals = m.rawSpectrum || [];
+  const min = vals.length ? Math.min(...vals) : NaN;
+  const max = vals.length ? Math.max(...vals) : NaN;
+  const rows = [
+    ['프로젝트', currentProject().name],
+    ['시료 유형', `${typeLabel(m.type)}${m.material ? ` / ${m.material}` : ''}`],
+    ['ROI', `${Math.round(m.roi?.x || 0)}, ${Math.round(m.roi?.y || 0)} / ${Math.round(m.roi?.w || 0)} × ${Math.round(m.roi?.h || 0)}`],
+    ['채널 / 집계', `${m.channelMode || '-'} / ${m.profileMode || '-'}`],
+    ['데이터 포인트', `${vals.length}`],
+    ['최소 / 최대', vals.length ? `${min.toFixed(2)} / ${max.toFixed(2)}` : '-'],
+    ['메모', m.memo || '-'],
+    ['화면 / 기기', `${m.viewport || '-'} / ${m.device || '-'}`]
+  ];
+  $('detailMeta').innerHTML = rows.map(([k,v]) => `<div><span>${escapeHtml(k)}</span><strong>${escapeHtml(v)}</strong></div>`).join('');
+  $('measurementDialog').showModal();
 }
 
 function updateAutoName() {
@@ -304,6 +377,7 @@ $('saveMeasurementBtn').addEventListener('click', () => {
   p.measurements.push(m);
   saveState(state);
   renderSession();
+  renderMeasurementList();
   updateAutoName();
   $('memo').value = '';
   alert(`${m.name} 저장 완료`);
@@ -337,6 +411,32 @@ $('resetProjectBtn').addEventListener('click', () => {
   currentProject().measurements = [];
   saveState(state);
   renderSession();
+  renderMeasurementList();
+  updateAutoName();
+});
+
+$('closeMeasurementDialog').addEventListener('click', () => $('measurementDialog').close());
+$('downloadSavedCsvBtn').addEventListener('click', () => {
+  const m = currentProject().measurements.find(item => item.id === selectedMeasurementId);
+  if (!m || !m.rawSpectrum?.length) return;
+  const csv = spectrumToCsv(m.rawSpectrum, {
+    project: currentProject().name, sample: m.name, channel: m.channelMode,
+    vertical_reducer: m.profileMode, roi_x: Math.round(m.roi?.x || 0),
+    roi_y: Math.round(m.roi?.y || 0), roi_width: Math.round(m.roi?.w || 0),
+    roi_height: Math.round(m.roi?.h || 0), exported_at: new Date().toISOString()
+  });
+  downloadText(csv, `${m.name || 'saved'}_spectrum.csv`, 'text/csv;charset=utf-8');
+});
+$('deleteMeasurementBtn').addEventListener('click', () => {
+  const p = currentProject();
+  const m = p.measurements.find(item => item.id === selectedMeasurementId);
+  if (!m || !confirm(`${m.name} 측정값을 삭제할까요?`)) return;
+  p.measurements = p.measurements.filter(item => item.id !== selectedMeasurementId);
+  saveState(state);
+  $('measurementDialog').close();
+  selectedMeasurementId = null;
+  renderSession();
+  renderMeasurementList();
   updateAutoName();
 });
 

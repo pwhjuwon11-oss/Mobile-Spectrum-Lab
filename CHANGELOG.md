@@ -1,32 +1,19 @@
-# v1.0.3
+# CHANGELOG
 
-- ROI 반올림으로 원본 이미지 경계를 1 px 초과할 때 스펙트럼이 비는 오류 수정
-- getImageData 좌표를 canvas 경계 안으로 강제 보정
-- 추출 오류 발생 시 화면에 오류 상태 표시
-
-# Changelog
+## v1.0.4
+- 저장된 측정값 목록 추가
+- 목록 항목 클릭 시 저장된 스펙트럼 그래프 다시 보기
+- 측정 유형, 재질, ROI, 채널, 집계 방식, 메모 등 상세 정보 표시
+- 저장된 측정값별 CSV 재내보내기
+- 개별 측정값 삭제 기능 추가
 
 ## v1.0.3
-- ROI drag event reliability improved
-- Prevent browser scrolling/image dragging during ROI movement
-- Pointer capture release and pointer-leave handling added
+- 이미지 경계에서 ROI가 1픽셀 초과하며 스펙트럼이 비어지는 오류 수정
+- ROI 좌표 및 크기를 원본 이미지 범위 안으로 강제 보정
+
+## v1.0.2
+- 데스크톱 및 모바일 ROI 드래그 안정성 개선
 
 ## v1.0.1
-
-- ROI 오버레이가 원본 픽셀값에 섞이던 오류 수정
-- 원본 이미지 전용 offscreen canvas에서 스펙트럼 추출
-- FIJI 방식 Gray 변환(0.299R + 0.587G + 0.114B) 추가 및 기본값 설정
-- Red, Green, Blue, Mean RGB 채널 선택 추가
-- 세로 방향 Mean, Median, Maximum, Sum 집계 분리
-- 그래프 Y축을 0–255로 고정(합계 모드는 자동 범위)
-- 현재 스펙트럼 CSV 내보내기 추가
-- 새 프로젝트의 초기 ROI 가로폭을 이미지 너비의 22%로 설정
-
-## v1.0.0-alpha
-
-- 프로젝트 생성 및 브라우저 저장
-- 사진 촬영/불러오기
-- ROI 이동 및 크기 조절
-- 스펙트럼 추출
-- Blank/Standard/Unknown 저장
-- JSON 내보내기
+- 원본 이미지 전용 canvas에서 스펙트럼 추출
+- Gray(FIJI 방식), RGB 채널 및 CSV 내보내기 추가
