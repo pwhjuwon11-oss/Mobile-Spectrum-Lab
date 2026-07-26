@@ -1,6 +1,14 @@
+# Changelog
+
+## v1.0.6
+- GitHub Pages 캐시 방지를 위해 CSS/JavaScript 버전 쿼리 추가
+- Red/Green/Blue 채널별 그래프 선 색상 적용을 다시 검증
+- 8자리 HEX 대신 rgba 음영을 사용해 브라우저 호환성 개선
+- 그래프 오른쪽 위에 현재 채널 색상 범례 추가
+
 # CHANGELOG
 
-## v1.0.5
+## v1.0.6
 - 스펙트럼 선 색상을 선택한 채널에 맞게 변경
 - Red: 빨간색, Green: 초록색, Blue: 파란색
 - Gray: 회색, Mean RGB: 보라색

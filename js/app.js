@@ -1,5 +1,5 @@
-import { loadState, saveState, downloadJSON } from './storage.js';
-import { extractSpectrum, drawSpectrum, spectrumToCsv } from './spectrum.js';
+import { loadState, saveState, downloadJSON } from './storage.js?v=1.0.6';
+import { extractSpectrum, drawSpectrum, spectrumToCsv } from './spectrum.js?v=1.0.6';
 
 const $ = (id) => document.getElementById(id);
 const canvas = $('imageCanvas');

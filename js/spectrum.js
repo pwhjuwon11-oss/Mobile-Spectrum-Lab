@@ -95,19 +95,20 @@ export function drawSpectrum(canvas, values, { fixed255 = true, channel = 'gray'
   ctx.stroke();
 
   if (values.length) {
-    const channelColors = {
-      gray: '#475569',
-      red: '#dc2626',
-      green: '#16a34a',
-      blue: '#2563eb',
-      meanRgb: '#7c3aed'
+    const channelStyles = {
+      gray: { line: '#475569', fillTop: 'rgba(71,85,105,0.24)', fillBottom: 'rgba(71,85,105,0.03)', label: 'Gray' },
+      red: { line: '#e11d48', fillTop: 'rgba(225,29,72,0.24)', fillBottom: 'rgba(225,29,72,0.03)', label: 'R' },
+      green: { line: '#16a34a', fillTop: 'rgba(22,163,74,0.24)', fillBottom: 'rgba(22,163,74,0.03)', label: 'G' },
+      blue: { line: '#2563eb', fillTop: 'rgba(37,99,235,0.24)', fillBottom: 'rgba(37,99,235,0.03)', label: 'B' },
+      meanRgb: { line: '#7c3aed', fillTop: 'rgba(124,58,237,0.24)', fillBottom: 'rgba(124,58,237,0.03)', label: 'Mean RGB' }
     };
-    const lineColor = channelColors[channel] || channelColors.gray;
+    const style = channelStyles[channel] || channelStyles.gray;
+    const lineColor = style.line;
 
-    // 선택 채널에 맞는 옅은 영역색을 먼저 그립니다.
+    // 8자리 HEX 대신 rgba를 사용해 브라우저 호환성을 높였습니다.
     const gradient = ctx.createLinearGradient(0, top, 0, h - bottom);
-    gradient.addColorStop(0, `${lineColor}38`);
-    gradient.addColorStop(1, `${lineColor}05`);
+    gradient.addColorStop(0, style.fillTop);
+    gradient.addColorStop(1, style.fillBottom);
     ctx.beginPath();
     values.forEach((value, i) => {
       const x = left + (i / Math.max(1, values.length - 1)) * plotW;
@@ -137,6 +138,17 @@ export function drawSpectrum(canvas, values, { fixed255 = true, channel = 'gray'
 
   ctx.fillStyle = '#334155';
   ctx.fillText('Intensity', left, 16);
+  if (values.length) {
+    const legend = {
+      gray: ['#475569', 'Gray'], red: ['#e11d48', 'R'], green: ['#16a34a', 'G'],
+      blue: ['#2563eb', 'B'], meanRgb: ['#7c3aed', 'Mean RGB']
+    }[channel] || ['#475569', 'Gray'];
+    ctx.fillStyle = legend[0];
+    ctx.fillRect(w - 118, 8, 16, 4);
+    ctx.font = 'bold 14px system-ui';
+    ctx.fillText(legend[1], w - 96, 16);
+    ctx.font = '15px system-ui';
+  }
   ctx.fillText('Pixel', w - 55, h - 10);
   if (values.length) {
     ctx.fillText('0', left - 4, h - 18);
