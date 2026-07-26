@@ -12,10 +12,17 @@ const CHANNELS = {
  * reducer: mean | median | max | sum
  */
 export function extractSpectrum(sourceCtx, roi, channel = 'gray', reducer = 'mean') {
-  const x = Math.round(roi.x);
-  const y = Math.round(roi.y);
-  const w = Math.max(1, Math.round(roi.w));
-  const h = Math.max(1, Math.round(roi.h));
+  // ROI 좌표를 실제 원본 canvas 경계 안으로 다시 보정합니다.
+  // 화면 좌표가 소수일 때 Math.round 때문에 오른쪽/아래쪽이 1 px 초과하면
+  // getImageData()가 IndexSizeError를 내며 그래프가 비는 문제가 있었습니다.
+  const canvasW = sourceCtx.canvas.width;
+  const canvasH = sourceCtx.canvas.height;
+  const x = Math.max(0, Math.min(canvasW - 1, Math.floor(Number(roi.x) || 0)));
+  const y = Math.max(0, Math.min(canvasH - 1, Math.floor(Number(roi.y) || 0)));
+  const requestedW = Math.max(1, Math.round(Number(roi.w) || 1));
+  const requestedH = Math.max(1, Math.round(Number(roi.h) || 1));
+  const w = Math.max(1, Math.min(requestedW, canvasW - x));
+  const h = Math.max(1, Math.min(requestedH, canvasH - y));
   const pixels = sourceCtx.getImageData(x, y, w, h).data;
   const toValue = CHANNELS[channel] || CHANNELS.gray;
   const result = new Array(w).fill(0);

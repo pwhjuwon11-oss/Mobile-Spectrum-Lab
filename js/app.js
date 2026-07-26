@@ -141,7 +141,17 @@ function redraw() {
   const roi = currentProject().roi;
 
   // 핵심 수정: 주황색 ROI 표시를 그리기 전에 원본 전용 canvas에서 값을 추출
-  spectrum = extractSpectrum(sourceCtx, roi, $('channelMode').value, $('profileMode').value);
+  try {
+    spectrum = extractSpectrum(sourceCtx, roi, $('channelMode').value, $('profileMode').value);
+  } catch (error) {
+    console.error('Spectrum extraction failed:', error);
+    spectrum = [];
+    drawSpectrum(spectrumCanvas, []);
+    $('spectrumLength').textContent = '포인트: 0';
+    $('spectrumPeak').textContent = '최대값: 오류';
+    $('spectrumRange').textContent = 'ROI 경계를 다시 확인하세요';
+    return;
+  }
 
   displayCtx.clearRect(0, 0, canvas.width, canvas.height);
   displayCtx.drawImage(image, 0, 0);

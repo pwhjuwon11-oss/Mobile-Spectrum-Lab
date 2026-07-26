@@ -1,6 +1,12 @@
+# v1.0.3
+
+- ROI 반올림으로 원본 이미지 경계를 1 px 초과할 때 스펙트럼이 비는 오류 수정
+- getImageData 좌표를 canvas 경계 안으로 강제 보정
+- 추출 오류 발생 시 화면에 오류 상태 표시
+
 # Changelog
 
-## v1.0.2
+## v1.0.3
 - ROI drag event reliability improved
 - Prevent browser scrolling/image dragging during ROI movement
 - Pointer capture release and pointer-leave handling added

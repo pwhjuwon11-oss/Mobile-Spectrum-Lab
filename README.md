@@ -1,10 +1,10 @@
-# Mobile Spectrum Lab v1.0.2
+# Mobile Spectrum Lab v1.0.3
 
 스마트폰 스펙트럼 사진에서 ROI를 지정하고, FIJI Plot Profile과 비교 가능한 1차원 밝기 프로파일을 추출하는 검증 버전입니다.
 
 ## 이번 버전의 핵심 수정
 
-v1.0.0-alpha에서는 화면에 그린 주황색 ROI 오버레이가 같은 canvas의 픽셀값에 포함되어 그래프 양 끝이 비정상적으로 상승할 수 있었습니다. v1.0.2은 원본 이미지 전용 offscreen canvas를 사용하므로 ROI 표시가 측정값에 들어가지 않습니다.
+v1.0.0-alpha에서는 화면에 그린 주황색 ROI 오버레이가 같은 canvas의 픽셀값에 포함되어 그래프 양 끝이 비정상적으로 상승할 수 있었습니다. v1.0.3은 원본 이미지 전용 offscreen canvas를 사용하므로 ROI 표시가 측정값에 들어가지 않습니다.
 
 ## 권장 검증 설정
 
