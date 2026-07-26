@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0f172a" />
-  <title>Mobile Spectrum Lab v1.0.0-alpha</title>
+  <title>Mobile Spectrum Lab v1.0.2</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -13,7 +13,7 @@
       <h1>Mobile Spectrum Lab</h1>
       <p>스마트폰 기반 가시광 분광 측정 플랫폼</p>
     </div>
-    <span class="version">v1.0.0-alpha</span>
+    <span class="version">v1.0.2</span>
   </header>
 
   <main class="app-shell">
@@ -69,12 +69,25 @@
     <section class="card spectrum-card">
       <div class="section-title-row">
         <h2>스펙트럼</h2>
-        <select id="profileMode" disabled>
-          <option value="mean">Mean</option>
-          <option value="median">Median</option>
-          <option value="max">Maximum</option>
-          <option value="sum">Sum</option>
-        </select>
+      </div>
+      <div class="control-grid spectrum-options">
+        <label>채널
+          <select id="channelMode" disabled>
+            <option value="gray">Gray (FIJI 방식)</option>
+            <option value="red">Red</option>
+            <option value="green">Green</option>
+            <option value="blue">Blue</option>
+            <option value="meanRgb">Mean RGB</option>
+          </select>
+        </label>
+        <label>세로 집계
+          <select id="profileMode" disabled>
+            <option value="mean">Mean (기본)</option>
+            <option value="median">Median</option>
+            <option value="max">Maximum</option>
+            <option value="sum">Sum</option>
+          </select>
+        </label>
       </div>
       <canvas id="spectrumCanvas" width="900" height="360"></canvas>
       <div class="spectrum-stats">
@@ -106,6 +119,7 @@
       <textarea id="memo" rows="2" placeholder="선택 사항"></textarea>
 
       <button id="saveMeasurementBtn" class="primary-btn full" disabled>측정값 저장</button>
+      <button id="exportSpectrumCsvBtn" class="secondary-btn full" disabled>현재 스펙트럼 CSV 내보내기</button>
     </section>
 
     <aside class="card session-card">

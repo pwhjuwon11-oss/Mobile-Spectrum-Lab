@@ -78,3 +78,11 @@ dialog form { padding:20px; }
   .roi-controls .control-grid { grid-template-columns:1fr 1fr; }
   .action-grid { grid-template-columns:1fr; }
 }
+
+.spectrum-options { margin-bottom: 12px; }
+.spectrum-options label { display: grid; gap: 6px; font-weight: 700; }
+.full + .full { margin-top: 10px; }
+
+/* v1.0.2: ROI drag reliability on desktop and mobile */
+#imageCanvas { touch-action:none; user-select:none; -webkit-user-select:none; -webkit-user-drag:none; cursor:grab; }
+#imageCanvas:active { cursor:grabbing; }
