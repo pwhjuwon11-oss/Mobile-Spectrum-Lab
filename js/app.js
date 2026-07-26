@@ -132,7 +132,7 @@ function openMeasurementDetail(id) {
   selectedMeasurementId = id;
   $('detailName').textContent = m.name || '측정값';
   $('detailSubtitle').textContent = `${typeLabel(m.type)}${m.material ? ` · ${m.material}` : ''} · ${formatDateTime(m.createdAt)}`;
-  drawSpectrum(historySpectrumCanvas, m.rawSpectrum || [], { fixed255: m.profileMode !== 'sum' });
+  drawSpectrum(historySpectrumCanvas, m.rawSpectrum || [], { fixed255: m.profileMode !== 'sum', channel: m.channelMode || 'gray' });
   const vals = m.rawSpectrum || [];
   const min = vals.length ? Math.min(...vals) : NaN;
   const max = vals.length ? Math.max(...vals) : NaN;
@@ -241,7 +241,7 @@ function redraw() {
   }
   displayCtx.restore();
 
-  drawSpectrum(spectrumCanvas, spectrum, { fixed255: $('profileMode').value !== 'sum' });
+  drawSpectrum(spectrumCanvas, spectrum, { fixed255: $('profileMode').value !== 'sum', channel: $('channelMode').value });
   const min = Math.min(...spectrum);
   const max = Math.max(...spectrum);
   $('spectrumLength').textContent = `포인트: ${spectrum.length}`;

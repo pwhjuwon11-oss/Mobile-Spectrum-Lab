@@ -54,7 +54,7 @@ export function extractSpectrum(sourceCtx, roi, channel = 'gray', reducer = 'mea
   return result;
 }
 
-export function drawSpectrum(canvas, values, { fixed255 = true } = {}) {
+export function drawSpectrum(canvas, values, { fixed255 = true, channel = 'gray' } = {}) {
   const ctx = canvas.getContext('2d');
   const w = canvas.width;
   const h = canvas.height;
@@ -95,7 +95,34 @@ export function drawSpectrum(canvas, values, { fixed255 = true } = {}) {
   ctx.stroke();
 
   if (values.length) {
-    ctx.strokeStyle = '#2563eb';
+    const channelColors = {
+      gray: '#475569',
+      red: '#dc2626',
+      green: '#16a34a',
+      blue: '#2563eb',
+      meanRgb: '#7c3aed'
+    };
+    const lineColor = channelColors[channel] || channelColors.gray;
+
+    // 선택 채널에 맞는 옅은 영역색을 먼저 그립니다.
+    const gradient = ctx.createLinearGradient(0, top, 0, h - bottom);
+    gradient.addColorStop(0, `${lineColor}38`);
+    gradient.addColorStop(1, `${lineColor}05`);
+    ctx.beginPath();
+    values.forEach((value, i) => {
+      const x = left + (i / Math.max(1, values.length - 1)) * plotW;
+      const clipped = Math.max(yMin, Math.min(yMax, value));
+      const y = top + (1 - (clipped - yMin) / (yMax - yMin)) * plotH;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    });
+    ctx.lineTo(w - right, h - bottom);
+    ctx.lineTo(left, h - bottom);
+    ctx.closePath();
+    ctx.fillStyle = gradient;
+    ctx.fill();
+
+    ctx.strokeStyle = lineColor;
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     values.forEach((value, i) => {
