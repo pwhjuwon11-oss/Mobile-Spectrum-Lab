@@ -1,202 +1,231 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0f172a" />
-  <title>Mobile Spectrum Lab v1.0.7</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <title>Mobile Spectrum Lab v2.0</title>
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <header class="app-header">
-    <div>
-      <h1>Mobile Spectrum Lab</h1>
-      <p>스마트폰 기반 가시광 분광 측정 플랫폼</p>
+<header class="app-header">
+  <div>
+    <h1>Mobile Spectrum Lab</h1>
+    <p>Session-based visible spectroscopy</p>
+  </div>
+  <span class="version">v2.0.4-local-functional</span>
+  <div id="runtimeStatus" style="font-size:12px;color:#bfdbfe;margin-left:auto;margin-right:14px">앱 초기화 중…</div>
+</header>
+
+<main class="app-shell">
+  <section id="sessionStartPanel" class="session-start card">
+    <div class="session-start-head">
+      <div>
+        <h2>새 세션 시작</h2>
+        <p>측정 방식을 먼저 선택하세요. 세션이 시작되면 측정 방식은 변경할 수 없습니다.</p>
+      </div>
     </div>
-    <span class="version">v1.0.7</span>
-  </header>
+    <div class="session-start-form">
+      <label class="session-name-field">세션 이름
+        <input id="sessionNameInput" type="text" value="분광 분석 세션" autocomplete="off">
+      </label>
+      <label class="check-row session-image-option"><input id="includeImagesCheck" type="checkbox" checked> 전체 ZIP에 원본 사진 포함</label>
+    </div>
+    <div class="mode-choice-grid">
+      <button id="startPhotoSessionBtn" class="mode-choice photo" type="button" onclick="if(window.MSL_startPhoto)window.MSL_startPhoto()">
+        <span class="mode-icon">📷</span>
+        <span><strong>사진 모드</strong><small>Blank부터 Unknown까지 각 항목을 고정한 채 연속 3회 촬영합니다.</small></span>
+      </button>
+      <button id="startVideoSessionBtn" class="mode-choice video" type="button" onclick="if(window.MSL_startVideo)window.MSL_startVideo()">
+        <span class="mode-icon">🎥</span>
+        <span><strong>3초 영상 모드</strong><small>각 항목을 3초간 측정하고 유효 프레임만 평균합니다.</small></span>
+      </button>
+    </div>
+  </section>
 
-  <main class="app-shell">
-    <section class="card project-card">
-      <div class="section-title-row">
-        <h2>프로젝트</h2>
-        <button id="newProjectBtn" class="ghost-btn">새 프로젝트</button>
-      </div>
-      <label class="field-label" for="projectSelect">현재 프로젝트</label>
-      <select id="projectSelect"></select>
-      <div class="project-meta">
-        <span id="projectLightSource">광원: 미설정</span>
-        <span id="projectCreatedAt">생성일: -</span>
-      </div>
-    </section>
+  <section class="session-bar card">
+    <div>
+      <strong id="sessionTitle">새 세션이 필요합니다</strong>
+      <p id="sessionMeta">사진 또는 3초 영상 모드를 선택하세요.</p>
+    </div>
+    <div class="row-actions">
+      <button id="newSessionBtn" class="btn primary">새 세션</button>
+      <button id="exportJsonBtn" class="btn" disabled>세션 JSON</button>
+      <button id="exportZipBtn" class="btn" disabled>전체 ZIP</button>
+    </div>
+  </section>
 
-    <section class="card measurement-card">
-      <h2>측정</h2>
-      <div class="action-grid">
-        <label class="primary-btn file-btn">
-          📷 카메라 촬영
-          <input id="cameraInput" type="file" accept="image/*" capture="environment" />
-        </label>
-        <label class="secondary-btn file-btn">
-          📁 사진 불러오기
-          <input id="galleryInput" type="file" accept="image/*" />
-        </label>
-      </div>
+  <section class="progress-card card">
+    <div class="progress-head"><strong>고정 측정 순서</strong><span id="progressText">0 / 7</span></div>
+    <div id="stepStrip" class="step-strip"></div>
+  </section>
 
-      <div id="canvasWrap" class="canvas-wrap empty">
-        <canvas id="imageCanvas"></canvas>
-        <div id="emptyGuide" class="empty-guide">
-          <strong>스펙트럼 사진을 선택하세요.</strong>
-          <span>이미지를 넣으면 ROI와 그래프가 바로 나타납니다.</span>
+  <section class="layout">
+    <aside class="measurements card">
+      <h2>측정 카드</h2>
+      <div id="measurementCards" class="measurement-cards"></div>
+    </aside>
+
+    <section class="workspace card">
+      <div class="workspace-head">
+        <div>
+          <h2 id="activeCardTitle">측정 대기</h2>
+          <p id="activeCardHint">새 세션을 시작하세요.</p>
         </div>
+        <span id="activeStatus" class="status neutral">대기</span>
       </div>
 
-      <div class="roi-controls">
-        <div class="section-title-row compact">
-          <h3>ROI</h3>
-          <button id="lockRoiBtn" class="ghost-btn" disabled>크기 잠금</button>
-        </div>
-        <div class="control-grid">
-          <label>X <input id="roiX" type="number" min="0" value="0" disabled /></label>
-          <label>Y <input id="roiY" type="number" min="0" value="0" disabled /></label>
-          <label>폭 <input id="roiW" type="number" min="8" value="260" disabled /></label>
-          <label>높이 <input id="roiH" type="number" min="8" value="60" disabled /></label>
-        </div>
-        <p class="hint">ROI 내부에서 드래그하면 이동하고, 오른쪽 아래 손잡이로 크기를 조절합니다.</p>
+      <div id="standardIdRow" class="field hidden">
+        <label for="standardIdInput">표준 ID</label>
+        <input id="standardIdInput" type="text" autocomplete="off">
       </div>
-    </section>
 
-    <section class="card spectrum-card">
-      <div class="section-title-row">
-        <h2>스펙트럼</h2>
+      <div id="photoControls" class="mode-controls hidden">
+        <label class="btn primary file-btn">사진 촬영<input id="cameraPhotoInput" type="file" accept="image/*" capture="environment"></label>
+        <label class="btn file-btn">사진 불러오기<input id="galleryInput" type="file" accept="image/*"></label>
+        <span id="photoRepeatLabel" class="pill">측정 1 / 3</span>
       </div>
-      <div class="control-grid spectrum-options">
-        <label>채널
-          <select id="channelMode" disabled>
-            <option value="gray">Gray (FIJI 방식)</option>
+
+      <div id="videoControls" class="mode-controls hidden">
+        <button id="startCameraBtn" class="btn primary">카메라 켜기</button>
+        <button id="captureVideoBtn" class="btn danger" disabled>3초 측정</button>
+        <span id="videoTimer" class="pill">대기</span>
+      </div>
+
+      <div id="viewerWrap" class="viewer empty">
+        <video id="liveVideo" playsinline muted class="hidden"></video>
+        <canvas id="imageCanvas" width="900" height="520"></canvas>
+        <div id="viewerEmpty" class="viewer-empty">사진을 선택하거나 카메라를 켜세요.</div>
+      </div>
+
+      <div class="roi-panel">
+        <div><strong>ROI</strong> <span id="roiSummary">미설정</span></div>
+        <div class="roi-fields">
+          <label>X <input id="roiX" type="number" min="0"></label>
+          <label>Y <input id="roiY" type="number" min="0"></label>
+          <label>W <input id="roiW" type="number" min="8"></label>
+          <label>H <input id="roiH" type="number" min="8"></label>
+        </div>
+        <p class="help">ROI 내부를 드래그해 이동하고 오른쪽 아래 손잡이로 크기를 조절합니다. Blank 첫 측정 후 크기가 고정됩니다.</p>
+      </div>
+
+      <div class="chart-block">
+        <div class="chart-head">
+          <strong>현재 Raw 스펙트럼</strong>
+          <select id="previewChannel">
+            <option value="overlay">RGB Overlay</option>
+            <option value="gray">Gray (FIJI)</option>
             <option value="red">Red</option>
             <option value="green">Green</option>
             <option value="blue">Blue</option>
-            <option value="rgbOverlay">RGB Overlay (동시 보기)</option>
           </select>
-        </label>
-        <label>세로 집계
-          <select id="profileMode" disabled>
-            <option value="mean">Mean (기본)</option>
-            <option value="median">Median</option>
-            <option value="max">Maximum</option>
-            <option value="sum">Sum</option>
-          </select>
-        </label>
-      </div>
-      <div id="overlayControls" class="overlay-controls hidden" aria-label="RGB 표시 채널">
-        <label><input id="showRed" type="checkbox" checked /> <span class="dot red"></span>Red</label>
-        <label><input id="showGreen" type="checkbox" checked /> <span class="dot green"></span>Green</label>
-        <label><input id="showBlue" type="checkbox" checked /> <span class="dot blue"></span>Blue</label>
-      </div>
-      <canvas id="spectrumCanvas" width="900" height="360"></canvas>
-      <div class="spectrum-stats">
-        <span id="spectrumLength">포인트: 0</span>
-        <span id="spectrumPeak">최대값: -</span>
-        <span id="spectrumRange">범위: -</span>
-      </div>
-    </section>
-
-    <section class="card save-card">
-      <h2>저장</h2>
-      <div class="segmented" role="group" aria-label="measurement type">
-        <button class="type-btn active" data-type="blank">Blank</button>
-        <button class="type-btn" data-type="standard">Standard</button>
-        <button class="type-btn" data-type="unknown">Unknown</button>
-      </div>
-
-      <div id="materialWrap" class="hidden">
-        <label class="field-label" for="materialSelect">재질</label>
-        <select id="materialSelect">
-          <option>PP</option><option>PS</option><option>PET</option><option>PE</option><option>PC</option>
-        </select>
-      </div>
-
-      <label class="field-label" for="sampleName">시료명</label>
-      <input id="sampleName" type="text" value="BLANK-001" />
-
-      <label class="field-label" for="memo">메모</label>
-      <textarea id="memo" rows="2" placeholder="선택 사항"></textarea>
-
-      <button id="saveMeasurementBtn" class="primary-btn full" disabled>측정값 저장</button>
-      <button id="exportSpectrumCsvBtn" class="secondary-btn full" disabled>현재 스펙트럼 CSV 내보내기</button>
-      <button id="exportSpectrumPngBtn" class="secondary-btn full" disabled>현재 그래프 PNG 저장</button>
-    </section>
-
-
-    <section class="card history-card">
-      <div class="section-title-row">
-        <h2>측정 기록</h2>
-        <span id="historyCount" class="history-count">0개</span>
-      </div>
-      <p class="hint history-hint">저장한 항목을 누르면 스펙트럼 그래프와 측정 조건을 다시 볼 수 있습니다.</p>
-      <div id="measurementList" class="measurement-list empty-list">
-        <div class="empty-history">저장된 측정값이 없습니다.</div>
-      </div>
-    </section>
-
-    <aside class="card session-card">
-      <h2>Current Session</h2>
-      <div class="session-grid">
-        <div><span>Blank</span><strong id="blankCount">0</strong></div>
-        <div><span>Standard</span><strong id="standardCount">0</strong></div>
-        <div><span>Unknown</span><strong id="unknownCount">0</strong></div>
-        <div><span>ROI</span><strong id="roiSummary">미설정</strong></div>
-      </div>
-      <div id="materialCounts" class="material-counts"></div>
-      <div class="session-actions">
-        <button id="exportBtn" class="secondary-btn">JSON 내보내기</button>
-        <button id="resetProjectBtn" class="danger-btn">프로젝트 데이터 초기화</button>
-      </div>
-    </aside>
-  </main>
-
-  <nav class="bottom-nav">
-    <button class="active">측정</button>
-    <button disabled>분석</button>
-    <button disabled>라이브러리</button>
-    <button disabled>연구 데이터</button>
-  </nav>
-
-  <dialog id="projectDialog">
-    <form method="dialog" id="projectForm">
-      <h2>새 프로젝트</h2>
-      <label class="field-label">프로젝트 이름</label>
-      <input id="newProjectName" required placeholder="예: 전국과학전람회" />
-      <label class="field-label">광원</label>
-      <input id="newLightSource" placeholder="예: White LED 6500K" />
-      <div class="dialog-actions">
-        <button value="cancel" class="ghost-btn">취소</button>
-        <button id="createProjectConfirm" value="default" class="primary-btn">생성</button>
-      </div>
-    </form>
-  </dialog>
-
-
-  <dialog id="measurementDialog" class="measurement-dialog">
-    <div class="measurement-detail">
-      <div class="section-title-row">
-        <div>
-          <h2 id="detailName">측정값</h2>
-          <p id="detailSubtitle" class="detail-subtitle"></p>
         </div>
-        <button id="closeMeasurementDialog" class="ghost-btn" type="button">닫기</button>
+        <canvas id="spectrumCanvas" width="900" height="390"></canvas>
       </div>
-      <canvas id="historySpectrumCanvas" width="900" height="360"></canvas>
-      <div id="detailMeta" class="detail-meta"></div>
-      <div class="detail-actions">
-        <button id="downloadSavedCsvBtn" class="secondary-btn" type="button">CSV 내보내기</button>
-        <button id="downloadSavedPngBtn" class="secondary-btn" type="button">PNG 저장</button>
-        <button id="deleteMeasurementBtn" class="danger-btn" type="button">이 측정값 삭제</button>
-      </div>
-    </div>
-  </dialog>
 
-  <script type="module" src="js/app.js?v=1.0.7"></script>
+      <div class="action-grid">
+        <button id="saveCaptureBtn" class="btn primary" disabled>현재 측정 저장</button>
+        <button id="completeCardBtn" class="btn success" disabled>평균 생성·카드 완료</button>
+        <button id="retakeCardBtn" class="btn danger" disabled>이 카드 전체 재촬영</button>
+      </div>
+
+      <div id="captureList" class="capture-list"></div>
+      <div id="repeatWarning" class="warning hidden"></div>
+    </section>
+  </section>
+
+  <section id="analysisSection" class="analysis card hidden">
+    <div class="analysis-head">
+      <div><h2>분석 결과</h2><p>Gray 주 판정, RGB 보조 판정</p></div>
+      <button id="runAnalysisBtn" class="btn primary">분석 다시 실행</button>
+    </div>
+    <div id="resultSummary" class="result-summary"></div>
+    <div class="tabs" id="channelTabs"></div>
+    <div class="analysis-grid">
+      <div class="chart-block"><strong>상대 감쇠 스펙트럼</strong><canvas id="analysisSpectrumCanvas" width="900" height="400"></canvas></div>
+      <div class="chart-block"><strong>Difference Spectrum</strong><canvas id="differenceCanvas" width="900" height="400"></canvas></div>
+    </div>
+    <div id="rankingTable"></div>
+    <div class="download-grid">
+      <button id="downloadProcessedBtn" class="btn">보정 데이터 CSV</button>
+      <button id="downloadMadBtn" class="btn">MAD 결과 CSV</button>
+      <button id="downloadGraphBtn" class="btn">그래프 PNG</button>
+    </div>
+  </section>
+</main>
+
+
+
+<script src="vendor/jszip.min.js"></script>
+<script>
+const CHANNELS=['gray','red','green','blue'];
+const fns={gray:(r,g,b)=>.299*r+.587*g+.114*b,red:r=>r,green:(_r,g)=>g,blue:(_r,_g,b)=>b};
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+function extractAll(ctx,roi){
+ const cw=ctx.canvas.width,ch=ctx.canvas.height,x=clamp(Math.floor(roi.x),0,cw-1),y=clamp(Math.floor(roi.y),0,ch-1),w=clamp(Math.round(roi.w),1,cw-x),h=clamp(Math.round(roi.h),1,ch-y),px=ctx.getImageData(x,y,w,h).data,out={gray:Array(w).fill(0),red:Array(w).fill(0),green:Array(w).fill(0),blue:Array(w).fill(0)};
+ for(let c=0;c<w;c++){let sums={gray:0,red:0,green:0,blue:0};for(let r=0;r<h;r++){const i=(r*w+c)*4,R=px[i],G=px[i+1],B=px[i+2];for(const k of CHANNELS)sums[k]+=fns[k](R,G,B)}for(const k of CHANNELS)out[k][c]=sums[k]/h}return out;
+}
+function meanSpectra(list){if(!list.length)return null;const n=Math.min(...list.map(s=>s.gray.length)),mean={},sd={};for(const k of CHANNELS){mean[k]=Array(n).fill(0);sd[k]=Array(n).fill(0);for(let i=0;i<n;i++){const vals=list.map(s=>s[k][i]);const m=vals.reduce((a,b)=>a+b,0)/vals.length;mean[k][i]=m;sd[k][i]=Math.sqrt(vals.reduce((a,b)=>a+(b-m)**2,0)/vals.length)}}return{mean,sd}}
+function minmax(a,mask=null){const vals=a.filter((_,i)=>!mask||mask[i]);const lo=Math.min(...vals),hi=Math.max(...vals),d=hi-lo||1;return a.map(v=>(v-lo)/d)}
+function mad(a,b,mask=null){let s=0,n=0;for(let i=0;i<Math.min(a.length,b.length);i++){if(mask&&!mask[i])continue;s+=Math.abs(a[i]-b[i]);n++}return n?s/n:Infinity}
+function repeatScore(spectra){if(spectra.length<2)return 0;let sum=0,n=0;for(let i=0;i<spectra.length;i++)for(let j=i+1;j<spectra.length;j++){sum+=mad(minmax(spectra[i].gray),minmax(spectra[j].gray));n++}return sum/n}
+function processAgainstBlank(sample,blank){const out={};for(const k of CHANNELS){const n=Math.min(sample[k].length,blank[k].length),maxB=Math.max(...blank[k]),mask=Array(n).fill(false),trans=Array(n),atten=Array(n);for(let i=0;i<n;i++){mask[i]=blank[k][i]>=maxB*.1;trans[i]=mask[i]?sample[k][i]/blank[k][i]:NaN;atten[i]=mask[i]?1-trans[i]:NaN}const finite=atten.map(v=>Number.isFinite(v)?v:0);out[k]={raw:sample[k].slice(0,n),blank:blank[k].slice(0,n),mask,transmittance:trans,attenuation:atten,normalized:minmax(finite,mask)}}return out}
+const styles={gray:'#475569',red:'#dc2626',green:'#16a34a',blue:'#2563eb',unknown:'#111827',PP:'#f97316',PET:'#8b5cf6',PS:'#ec4899',PA:'#0891b2',PC:'#65a30d'};
+function drawChart(canvas,series,{yMin=null,yMax=null,xLabel='Pixel',yLabel='Intensity'}={}){const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height,L=60,R=20,T=30,B=45,pw=W-L-R,ph=H-T-B;ctx.clearRect(0,0,W,H);ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);const vals=series.flatMap(s=>s.values.filter(Number.isFinite));if(yMin==null)yMin=Math.min(0,...vals);if(yMax==null)yMax=Math.max(1,...vals);if(yMax===yMin)yMax=yMin+1;ctx.strokeStyle='#e2e8f0';ctx.lineWidth=1;ctx.font='12px system-ui';for(let i=0;i<=5;i++){const y=T+ph*i/5,v=yMax-(yMax-yMin)*i/5;ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(W-R,y);ctx.stroke();ctx.fillStyle='#64748b';ctx.fillText(v.toFixed(2),5,y+4)}const count=Math.max(0,...series.map(s=>s.values.length));for(let i=0;i<=5;i++){const x=L+pw*i/5;ctx.beginPath();ctx.moveTo(x,T);ctx.lineTo(x,H-B);ctx.stroke();ctx.fillStyle='#64748b';ctx.fillText(String(Math.round((count-1)*i/5)),x-7,H-22)}ctx.strokeStyle='#64748b';ctx.beginPath();ctx.moveTo(L,T);ctx.lineTo(L,H-B);ctx.lineTo(W-R,H-B);ctx.stroke();for(const s of series){ctx.strokeStyle=s.color||styles[s.key]||'#111827';ctx.lineWidth=s.width||2.2;ctx.beginPath();s.values.forEach((v,i)=>{if(!Number.isFinite(v))return;const x=L+(i/Math.max(1,s.values.length-1))*pw,y=T+(1-(v-yMin)/(yMax-yMin))*ph;i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke()}ctx.fillStyle='#334155';ctx.fillText(yLabel,L,18);ctx.fillText(xLabel,W-55,H-8);let lx=W-25;for(let i=series.length-1;i>=0;i--){const s=series[i],label=s.label||s.key,w=ctx.measureText(label).width+28;lx-=w;ctx.strokeStyle=s.color||styles[s.key]||'#111827';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(lx,T-13);ctx.lineTo(lx+16,T-13);ctx.stroke();ctx.fillStyle='#334155';ctx.fillText(label,lx+20,T-9)}}
+function csvRaw(spectrum,metadata={}){const meta=Object.entries(metadata).map(([k,v])=>`# ${k},${String(v).replaceAll(',',' ')}`),n=spectrum.gray.length,rows=['pixel,gray,red,green,blue'];for(let i=0;i<n;i++)rows.push(`${i},${CHANNELS.map(k=>Number(spectrum[k][i]).toFixed(6)).join(',')}`);return [...meta,...rows].join('\n')}
+function csvMean(mean,sd,metadata={}){const meta=Object.entries(metadata).map(([k,v])=>`# ${k},${String(v).replaceAll(',',' ')}`),n=mean.gray.length,head=['pixel',...CHANNELS.flatMap(k=>[`${k}_mean`,`${k}_sd`])],rows=[head.join(',')];for(let i=0;i<n;i++)rows.push([i,...CHANNELS.flatMap(k=>[mean[k][i].toFixed(6),sd[k][i].toFixed(6)])].join(','));return[...meta,...rows].join('\n')}
+
+window.MSL_SPEC={CHANNELS,clamp,extractAll,meanSpectra,minmax,mad,repeatScore,processAgainstBlank,drawChart,csvRaw,csvMean};
+
+</script>
+<script>
+if(!window.MSL_SPEC){document.body.innerHTML='<main style="padding:24px;font-family:system-ui"><h1>스크립트 로드 오류</h1><p>js/spectrum.js 파일을 확인하세요.</p></main>';throw new Error('MSL_SPEC not loaded');}
+const {CHANNELS,clamp,extractAll,meanSpectra,repeatScore,processAgainstBlank,mad,drawChart,csvRaw,csvMean}=window.MSL_SPEC;
+const clone=o=>window.structuredClone?structuredClone(o):JSON.parse(JSON.stringify(o));
+const $=id=>document.getElementById(id),ORDER=['blank','PP','PET','PS','PA','PC','unknown'],LABEL={blank:'Blank',PP:'PP Standard',PET:'PET Standard',PS:'PS Standard',PA:'PA Standard',PC:'PC Standard',unknown:'Unknown'};
+const canvas=$('imageCanvas'),ctx=canvas.getContext('2d'),source=document.createElement('canvas'),sctx=source.getContext('2d',{willReadFrequently:true}),specCanvas=$('spectrumCanvas');
+let session=null,activeKey=null,currentImage=null,currentDataUrl=null,currentSpectrum=null,drag=null,selectedChannel='gray',analysis=null,stream=null;
+function uuid(){return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now()+'-'+Math.random().toString(16).slice(2)}
+function freshSession(name,mode,includeImages){const cards={};ORDER.forEach(k=>cards[k]={key:k,label:LABEL[k],standardId:['PP','PET','PS','PA','PC'].includes(k)?`${k}-STD-001`:null,captures:[],mean:null,sd:null,warning:false,acknowledged:false,done:false});return{id:uuid(),name,mode,includeImages,createdAt:new Date().toISOString(),roi:{x:0,y:0,w:0,h:0,locked:false,initialized:false},cards,activeIndex:0,result:null,thresholds:{repeatWarningMad:.08,unclassifiedMad:.20,separation:.15}}}
+function saveState(){if(!session)return;const copy=clone(session);for(const c of Object.values(copy.cards))for(const cap of c.captures)delete cap.imageDataUrl;localStorage.setItem('msl_v2_session',JSON.stringify(copy))}
+function loadState(){try{return JSON.parse(localStorage.getItem('msl_v2_session'))}catch{return null}}
+function download(content,name,type='text/plain;charset=utf-8'){const blob=content instanceof Blob?content:new Blob([content],{type}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),500)}
+function render(){const has=!!session;$('sessionStartPanel').classList.toggle('hidden',has);$('sessionTitle').textContent=has?session.name:'새 세션이 필요합니다';$('sessionMeta').textContent=has?`${session.mode==='photo'?'사진 3회':'3초 영상'} · ${new Date(session.createdAt).toLocaleString('ko-KR')}`:'사진 또는 3초 영상 모드를 선택하세요.';$('exportJsonBtn').disabled=!has;$('exportZipBtn').disabled=!has;renderSteps();renderCards();renderActive();if(session?.result)renderAnalysis()}
+function renderSteps(){const done=session?ORDER.filter(k=>session.cards[k].done).length:0;$('progressText').textContent=`${done} / 7`;$('stepStrip').innerHTML=ORDER.map((k,i)=>`<div class="step ${session?.cards[k].done?'done':''} ${session&&i===session.activeIndex?'active':''}">${i+1}. ${k==='unknown'?'Unknown':k.toUpperCase()}</div>`).join('')}
+function renderCards(){const wrap=$('measurementCards');if(!session){wrap.innerHTML='<p class="help">새 세션을 시작하면 측정 카드가 생성됩니다.</p>';return}wrap.innerHTML=ORDER.map((k,i)=>{const c=session.cards[k],cls=c.done?'done':c.warning?'warning':i===session.activeIndex?'active':'',disabled=i>session.activeIndex&&!c.done?'disabled':'';return`<button class="measurement-card ${cls}" data-key="${k}" ${disabled}><span class="top"><strong>${LABEL[k]}</strong><span>${c.done?'완료':c.captures.length+(session.mode==='photo'?'/3':'')}</span></span><small>${c.standardId|| (c.warning?'반복성 경고':c.done?'평균 생성 완료':'측정 대기')}</small></button>`}).join('');wrap.querySelectorAll('[data-key]').forEach(b=>b.onclick=()=>{activeKey=b.dataset.key;renderActive()})}
+function activeCard(){return session?.cards[activeKey||ORDER[session.activeIndex]]}
+function renderActive(){if(!session){$('activeCardTitle').textContent='측정 대기';$('activeCardHint').textContent='새 세션을 시작하세요.';return}if(!activeKey)activeKey=ORDER[session.activeIndex];const c=activeCard(),isStd=!!c.standardId;$('activeCardTitle').textContent=c.label;$('activeCardHint').textContent=session.mode==='photo'?'같은 시료를 고정한 채 연속 3회 측정하세요.':'ROI를 맞춘 뒤 3초간 유효 프레임을 수집합니다.';$('activeStatus').textContent=c.done?'완료':c.warning?'경고':c.captures.length?'측정 중':'대기';$('activeStatus').className='status '+(c.done?'done':c.warning?'warn':'active');$('standardIdRow').classList.toggle('hidden',!isStd);if(isStd){$('standardIdInput').value=c.standardId;$('standardIdInput').onchange=e=>{c.standardId=e.target.value.trim()||`${c.key}-STD-001`;saveState();renderCards()}}$('photoControls').classList.toggle('hidden',session.mode!=='photo');$('videoControls').classList.toggle('hidden',session.mode!=='video');$('photoRepeatLabel').textContent=`측정 ${Math.min(c.captures.length+1,3)} / 3`;$('saveCaptureBtn').style.display=session.mode==='photo'?'':'none';$('saveCaptureBtn').disabled=!currentSpectrum||c.done||c.captures.length>=3;$('completeCardBtn').disabled=c.done||(session.mode==='photo'?c.captures.length!==3:c.captures.length!==1);$('retakeCardBtn').disabled=!c.captures.length&&!c.done;renderCaptureList();syncRoiInputs();renderWarning(c)}
+function renderCaptureList(){const c=activeCard();$('captureList').innerHTML=c.captures.map((x,i)=>`<div class="capture-item"><span>${session.mode==='photo'?`측정 ${i+1}`:`유효 프레임 ${x.validFrames||0}개`} · ${x.spectrum.gray.length} points</span><button class="btn" data-dl="${i}">Raw CSV</button></div>`).join('')+(c.mean?`<div class="capture-item"><strong>평균 Raw</strong><button class="btn" id="meanCsvBtn">평균 CSV</button></div>`:'');$('captureList').querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>downloadCapture(+b.dataset.dl));$('meanCsvBtn')?.addEventListener('click',downloadMean)}
+function renderWarning(c){const el=$('repeatWarning');el.classList.toggle('hidden',!c.warning);if(c.warning)el.innerHTML=`<strong>반복성 경고</strong><br>3회 측정의 정규화 Gray 평균 MAD가 ${c.repeatMad.toFixed(4)}입니다. 원자료는 삭제하지 않았습니다.`}
+function syncRoiInputs(){if(!session)return;const r=session.roi;for(const [id,k] of [['roiX','x'],['roiY','y'],['roiW','w'],['roiH','h']]){$(id).value=Math.round(r[k]||0);$(id).disabled=!currentImage||(r.locked&&(k==='w'||k==='h'))}$('roiSummary').textContent=r.initialized?`${Math.round(r.w)} × ${Math.round(r.h)}${r.locked?' 🔒':''}`:'미설정'}
+function initRoi(w,h){const r=session.roi;if(!r.initialized){r.w=Math.round(w*.22);r.h=Math.round(h*.13);r.x=Math.round((w-r.w)/2);r.y=Math.round((h-r.h)/2);r.initialized=true}r.w=clamp(r.w,8,w);r.h=clamp(r.h,8,h);r.x=clamp(r.x,0,w-r.w);r.y=clamp(r.y,0,h-r.h)}
+function loadFile(file){if(!file||!session)return;const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{currentImage=im;currentDataUrl=fr.result;source.width=im.naturalWidth;source.height=im.naturalHeight;sctx.drawImage(im,0,0);canvas.width=im.naturalWidth;canvas.height=im.naturalHeight;initRoi(canvas.width,canvas.height);$('viewerWrap').classList.remove('empty');$('viewerEmpty').style.display='none';updatePreview()};im.src=fr.result};fr.readAsDataURL(file)}
+function updatePreview(){if(!currentImage&&!stream)return;const r=session.roi;if(currentImage){ctx.drawImage(currentImage,0,0,canvas.width,canvas.height);currentSpectrum=extractAll(sctx,r)}drawRoi();drawCurrentSpectrum();syncRoiInputs();$('saveCaptureBtn').disabled=!currentSpectrum||activeCard().done||activeCard().captures.length>=3}
+function drawRoi(){const r=session.roi;ctx.save();ctx.fillStyle='rgba(250,204,21,.12)';ctx.strokeStyle='#facc15';ctx.lineWidth=Math.max(3,canvas.width/500);ctx.fillRect(r.x,r.y,r.w,r.h);ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.fillStyle='#facc15';const hs=Math.max(18,canvas.width/80);ctx.fillRect(r.x+r.w-hs,r.y+r.h-hs,hs,hs);ctx.restore()}
+function drawCurrentSpectrum(){if(!currentSpectrum)return;const mode=$('previewChannel').value,series=mode==='overlay'?CHANNELS.filter(k=>k!=='gray').map(k=>({key:k,label:k[0].toUpperCase(),values:currentSpectrum[k]})):[{key:mode,label:mode,values:currentSpectrum[mode]}];drawChart(specCanvas,series,{yMin:0,yMax:255})}
+function pointerPos(e){const rect=canvas.getBoundingClientRect();return{x:(e.clientX-rect.left)*canvas.width/rect.width,y:(e.clientY-rect.top)*canvas.height/rect.height}}
+canvas.onpointerdown=e=>{if(!currentImage)return;const p=pointerPos(e),r=session.roi,hs=Math.max(28,canvas.width/60);if(p.x>=r.x+r.w-hs&&p.y>=r.y+r.h-hs&&!r.locked)drag={mode:'resize',p,r:{...r}};else if(p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h)drag={mode:'move',p,r:{...r}};if(drag)canvas.setPointerCapture(e.pointerId)};canvas.onpointermove=e=>{if(!drag)return;const p=pointerPos(e),r=session.roi,dx=p.x-drag.p.x,dy=p.y-drag.p.y;if(drag.mode==='move'){r.x=clamp(drag.r.x+dx,0,canvas.width-r.w);r.y=clamp(drag.r.y+dy,0,canvas.height-r.h)}else{r.w=clamp(drag.r.w+dx,8,canvas.width-r.x);r.h=clamp(drag.r.h+dy,8,canvas.height-r.y)}updatePreview()};canvas.onpointerup=()=>{drag=null;saveState()};
+for(const [id,k] of [['roiX','x'],['roiY','y'],['roiW','w'],['roiH','h']])$(id).onchange=e=>{if(!session||!currentImage)return;session.roi[k]=Number(e.target.value);initRoi(canvas.width,canvas.height);updatePreview();saveState()};
+function savePhotoCapture(){const c=activeCard();if(!currentSpectrum||c.captures.length>=3)return;c.captures.push({id:uuid(),createdAt:new Date().toISOString(),roi:{...session.roi},spectrum:clone(currentSpectrum),imageDataUrl:session.includeImages?currentDataUrl:null});if(c.key==='blank'&&c.captures.length===1)session.roi.locked=true;currentImage=null;currentSpectrum=null;currentDataUrl=null;ctx.clearRect(0,0,canvas.width,canvas.height);$('viewerEmpty').style.display='grid';$('viewerWrap').classList.add('empty');drawChart(specCanvas,[]);saveState();render();activeKey=c.key}
+function completeCard(){const c=activeCard(),spectra=c.captures.map(x=>x.spectrum),avg=meanSpectra(spectra);if(!avg)return;c.mean=avg.mean;c.sd=avg.sd;c.repeatMad=repeatScore(spectra);c.warning=session.mode==='photo'&&c.repeatMad>session.thresholds.repeatWarningMad;c.done=true;session.activeIndex=Math.max(session.activeIndex,ORDER.indexOf(c.key)+1);if(session.activeIndex>=ORDER.length){session.activeIndex=ORDER.length-1;runAnalysis()}else activeKey=ORDER[session.activeIndex];saveState();render()}
+function retake(){const c=activeCard();if(!confirm(`${c.label}의 모든 측정값을 삭제하고 다시 측정할까요?`))return;c.captures=[];c.mean=null;c.sd=null;c.warning=false;c.done=false;session.result=null;session.activeIndex=ORDER.indexOf(c.key);activeKey=c.key;analysis=null;$('analysisSection').classList.add('hidden');saveState();render()}
+async function startCamera(){if(stream)return;if(location.protocol==='file:'){alert('카메라 직접 실행은 브라우저 보안 정책상 file://에서 제한될 수 있습니다. 사진 불러오기는 로컬에서 가능하며, 카메라는 GitHub Pages(HTTPS)에서 테스트하세요.');}try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});const v=$('liveVideo');v.srcObject=stream;v.classList.remove('hidden');await v.play();$('viewerEmpty').style.display='none';$('viewerWrap').classList.remove('empty');$('startCameraBtn').textContent='카메라 켜짐';$('captureVideoBtn').disabled=false;requestAnimationFrame(videoLoop)}catch(e){alert('카메라를 열 수 없습니다: '+e.message)}}
+function videoLoop(){if(!stream)return;const v=$('liveVideo');if(v.videoWidth){canvas.width=v.videoWidth;canvas.height=v.videoHeight;source.width=v.videoWidth;source.height=v.videoHeight;initRoi(canvas.width,canvas.height);sctx.drawImage(v,0,0);ctx.drawImage(v,0,0);drawRoi();currentSpectrum=extractAll(sctx,session.roi);drawCurrentSpectrum();syncRoiInputs()}requestAnimationFrame(videoLoop)}
+async function captureVideo(){const c=activeCard();if(c.done)return;$('captureVideoBtn').disabled=true;const frames=[],start=performance.now();while(performance.now()-start<3000){const left=Math.ceil((3000-(performance.now()-start))/1000);$('videoTimer').textContent=`${Math.max(0,left)}초`;sctx.drawImage($('liveVideo'),0,0,source.width,source.height);const sp=extractAll(sctx,session.roi),g=sp.gray,mean=g.reduce((a,b)=>a+b,0)/g.length,sat=g.filter(v=>v>=250).length/g.length;if(mean>5&&mean<250&&sat<.05)frames.push(sp);await new Promise(r=>setTimeout(r,120))}$('videoTimer').textContent='완료';if(frames.length<3){alert('유효 프레임이 부족합니다. 조명과 ROI를 확인하세요.');$('captureVideoBtn').disabled=false;return}const avg=meanSpectra(frames);c.captures=[{id:uuid(),createdAt:new Date().toISOString(),roi:{...session.roi},spectrum:avg.mean,frameSd:avg.sd,validFrames:frames.length,validFrameSpectra:frames}];c.mean=avg.mean;c.sd=avg.sd;c.warning=repeatScore(frames)>.08;c.repeatMad=repeatScore(frames);$('completeCardBtn').disabled=false;saveState();renderActive()}
+function runAnalysis(){if(!ORDER.every(k=>session.cards[k].done))return;const blank=session.cards.blank.mean,processed={};for(const k of ORDER.filter(k=>k!=='blank'))processed[k]=processAgainstBlank(session.cards[k].mean,blank);const rankings={},statuses={};for(const ch of CHANNELS){const u=processed.unknown[ch],rows=['PP','PET','PS','PA','PC'].map(mat=>({material:mat,mad:mad(u.normalized,processed[mat][ch].normalized,u.mask)})).sort((a,b)=>a.mad-b.mad),best=rows[0],second=rows[1],sep=(second.mad-best.mad)/(second.mad||1);let status=best.mad>session.thresholds.unclassifiedMad?'미분류':sep<session.thresholds.separation?'불확실':'1순위 후보';rankings[ch]=rows;statuses[ch]={status,best:best.material,bestMad:best.mad,separation:sep}}const leaders=CHANNELS.map(ch=>statuses[ch].best),mismatch=new Set(leaders).size>1;analysis={processed,rankings,statuses,mismatch,createdAt:new Date().toISOString(),activeChannel:'gray'};session.result={rankings,statuses,mismatch,createdAt:analysis.createdAt};saveState();renderAnalysis()}
+function renderAnalysis(){if(!analysis&&session.result)runAnalysis();if(!analysis)return;$('analysisSection').classList.remove('hidden');const g=analysis.statuses.gray;$('resultSummary').innerHTML=`<div class="result-big">${g.status}: ${g.best}</div><p>Gray MAD ${g.bestMad.toFixed(6)} · 분리도 ${(g.separation*100).toFixed(1)}%</p>${analysis.mismatch?'<div class="warning"><strong>채널 불일치</strong><br>'+CHANNELS.map(c=>`${c}: ${analysis.statuses[c].best}`).join(' · ')+'</div>':'<p>Gray·R·G·B 채널의 1순위가 일치합니다.</p>'}`;$('channelTabs').innerHTML=CHANNELS.map(ch=>`<button class="tab ${ch===analysis.activeChannel?'active':''}" data-ch="${ch}">${ch.toUpperCase()}</button>`).join('');$('channelTabs').querySelectorAll('[data-ch]').forEach(b=>b.onclick=()=>{analysis.activeChannel=b.dataset.ch;renderAnalysisCharts();renderAnalysis()});renderAnalysisCharts()}
+function renderAnalysisCharts(){const ch=analysis.activeChannel,series=['PP','PET','PS','PA','PC'].map(k=>({key:k,label:k,values:analysis.processed[k][ch].attenuation}));series.unshift({key:'unknown',label:'Unknown',values:analysis.processed.unknown[ch].attenuation,width:3});drawChart($('analysisSpectrumCanvas'),series,{yLabel:'1 - I/I₀'});const best=analysis.statuses[ch].best,u=analysis.processed.unknown[ch].normalized,s=analysis.processed[best][ch].normalized,d=u.map((v,i)=>Math.abs(v-s[i]));drawChart($('differenceCanvas'),[{key:'unknown',label:`|Unknown-${best}|`,values:d}],{yMin:0,yMax:1,yLabel:'Absolute difference'});$('rankingTable').innerHTML=`<table class="rank-table"><thead><tr><th>순위</th><th>재질</th><th>MAD</th></tr></thead><tbody>${analysis.rankings[ch].map((r,i)=>`<tr><td>${i+1}</td><td>${r.material}</td><td>${r.mad.toFixed(6)}</td></tr>`).join('')}</tbody></table>`}
+function downloadCapture(i){const c=activeCard(),cap=c.captures[i];download(csvRaw(cap.spectrum,{session:session.name,type:c.key,standard_id:c.standardId||'',capture:i+1,roi:`${cap.roi.x} ${cap.roi.y} ${cap.roi.w} ${cap.roi.h}`}),`${c.standardId||c.key}_raw_${String(i+1).padStart(2,'0')}.csv`,'text/csv')}
+function downloadMean(){const c=activeCard();download(csvMean(c.mean,c.sd,{session:session.name,type:c.key,standard_id:c.standardId||'',repeat_warning:c.warning}),`${c.standardId||c.key}_raw_mean.csv`,'text/csv')}
+function processedCsv(){const rows=['sample,channel,pixel,raw,blank,transmittance,relative_attenuation,normalized,valid'];for(const [sample,p] of Object.entries(analysis.processed))for(const ch of CHANNELS)for(let i=0;i<p[ch].raw.length;i++)rows.push([sample,ch,i,p[ch].raw[i],p[ch].blank[i],p[ch].transmittance[i],p[ch].attenuation[i],p[ch].normalized[i],p[ch].mask[i]].map((v,j)=>typeof v==='number'&&j>2?Number(v).toFixed(6):v).join(','));return rows.join('\n')}
+function madCsv(){const rows=['channel,rank,material,mad,status,separation'];for(const ch of CHANNELS)analysis.rankings[ch].forEach((r,i)=>rows.push(`${ch},${i+1},${r.material},${r.mad.toFixed(6)},${i===0?analysis.statuses[ch].status:''},${i===0?analysis.statuses[ch].separation.toFixed(6):''}`));return rows.join('\n')}
+async function exportZip(){if(!session)return;const zip=new JSZip(),root=zip.folder(`MSL_${session.id.slice(0,8)}`);root.file('session.json',JSON.stringify(session,(k,v)=>k==='imageDataUrl'?undefined:v,2));const raw=root.folder('raw');for(const k of ORDER){const c=session.cards[k],dir=raw.folder(k);c.captures.forEach((cap,i)=>{dir.file(`${c.standardId||k}_raw_${String(i+1).padStart(2,'0')}.csv`,csvRaw(cap.spectrum,{session:session.name,type:k,standard_id:c.standardId||''}));if(session.includeImages&&cap.imageDataUrl){const base=cap.imageDataUrl.split(',')[1];dir.file(`${c.standardId||k}_image_${String(i+1).padStart(2,'0')}.jpg`,base,{base64:true})}});if(c.mean)dir.file(`${c.standardId||k}_raw_mean.csv`,csvMean(c.mean,c.sd,{repeat_warning:c.warning}))}if(analysis){root.folder('processed').file('all_processed.csv',processedCsv());root.folder('results').file('mad_results.csv',madCsv())}const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});download(blob,`MSL_${new Date().toISOString().replaceAll(':','-')}.zip`)}
+function createFixedModeSession(mode){if(session&&!confirm('현재 세션을 종료하고 새 세션을 시작할까요?'))return;session=freshSession($('sessionNameInput').value.trim()||'분광 분석 세션',mode,$('includeImagesCheck').checked);activeKey='blank';analysis=null;localStorage.removeItem('msl_v2_session');saveState();render();window.scrollTo({top:0,behavior:'smooth'})}
+$('newSessionBtn').onclick=()=>{if(session&&!confirm('현재 세션을 종료하고 새 세션 선택 화면으로 돌아갈까요?'))return;session=null;activeKey=null;analysis=null;localStorage.removeItem('msl_v2_session');$('analysisSection').classList.add('hidden');render();$('sessionStartPanel').scrollIntoView({behavior:'smooth',block:'start'})};$('startPhotoSessionBtn').onclick=()=>createFixedModeSession('photo');$('startVideoSessionBtn').onclick=()=>createFixedModeSession('video');$('cameraPhotoInput').onchange=e=>{loadFile(e.target.files[0]);e.target.value=''};$('galleryInput').onchange=e=>{loadFile(e.target.files[0]);e.target.value=''};$('previewChannel').onchange=drawCurrentSpectrum;$('saveCaptureBtn').onclick=savePhotoCapture;$('completeCardBtn').onclick=completeCard;$('retakeCardBtn').onclick=retake;$('startCameraBtn').onclick=startCamera;$('captureVideoBtn').onclick=captureVideo;$('runAnalysisBtn').onclick=runAnalysis;$('exportJsonBtn').onclick=()=>download(JSON.stringify(session,(k,v)=>k==='imageDataUrl'?undefined:v,2),`MSL_${session.id}.json`,'application/json');$('exportZipBtn').onclick=exportZip;$('downloadProcessedBtn').onclick=()=>download(processedCsv(),'processed_data.csv','text/csv');$('downloadMadBtn').onclick=()=>download(madCsv(),'mad_results.csv','text/csv');$('downloadGraphBtn').onclick=()=>$('analysisSpectrumCanvas').toBlob(b=>download(b,'attenuation_graph.png','image/png'));
+const restored=loadState();if(restored){session=restored;activeKey=ORDER[Math.min(session.activeIndex,6)];if(session.result&&ORDER.every(k=>session.cards[k].done))runAnalysis()}render();drawChart(specCanvas,[]);
+
+window.MSL_startPhoto=function(){createFixedModeSession('photo')}; window.MSL_startVideo=function(){createFixedModeSession('video')}; const rs=document.getElementById('runtimeStatus'); if(rs){rs.textContent='앱 준비 완료';rs.style.color='#86efac'}; console.info('Mobile Spectrum Lab v2.0.4-local-functional loaded');
+
+</script>
 </body>
 </html>
